@@ -28,6 +28,8 @@ tags:
     description: 'User login'
   - name: Users
     description: 'User management'
+  - name: Results
+    description: 'Result management'
 paths:
   /login_check:
     post:
@@ -210,7 +212,59 @@ paths:
           headers:
             Allow:
               $ref: '#/components/headers/Allow'
+  /results:
+    get:
+      tags: [Results]
+      summary: Retrieves the collection of Result resources.
+      description: 'Returns all results from the system that the result has access to.'
+      operationId: api_results_cget
+      security:
+        - MiWApiSecurity: []
+      responses:
+        '200':
+          description: 'Array of results'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { description: 'Results Array', type: array, items: { $ref: '#/components/schemas/Result'}}
+          headers:
+            ETag:
+              $ref: '#components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
 
+  /results/{resultId}:
+    get:
+      tags: [Results]
+      summary: Retrieves a Result resource based on a single ID.
+      description: 'Returns the result identified by `resultId`.'
+      operationId: api_results_get
+      security:
+        - MiWApiSecurity: [ ]
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
 components:
   headers:
     ETag:
@@ -259,6 +313,46 @@ components:
               href: /api/v1/users
             self:
               href: /api/v1/users/1508
+    Result:
+      type: object
+      properties:
+        id:
+          description: 'Result id'
+          type: integer
+          format: int64
+        result:
+          description: 'Result result'
+          type: integer
+          format: int64
+        user:
+          $ref: '#/components/schemas/User'
+        time:
+          description: 'Result time'
+          type: string
+          format: data
+        _links:
+          description: link relations
+          type: object
+          properties:
+            parent:
+              type: object
+              properties: {"href": {"type": "string","format": "url"}}
+            self:
+              type: object
+              properties: {"href": {"type": "string","format": "url"}}
+
+      example:
+        result:
+          id: 1
+          user: 1508
+          result: 99
+          time: '2021-01-04 02:31:00'
+          _links:
+            parent:
+              href: /api/v1/results
+            self:
+              href: /api/v1/results/1
+
     Message:
       type: object
       description: HTTP response message
@@ -380,6 +474,12 @@ components:
       name: userId
       in: path
       description: 'ID of user'
+      required: true
+      schema: {"type": "integer", pattern: '^\d+$'}
+    resultId:
+      name: resultId
+      in: path
+      description: 'ID of result'
       required: true
       schema: {"type": "integer", pattern: '^\d+$'}
 
