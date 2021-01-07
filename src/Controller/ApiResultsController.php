@@ -5,13 +5,16 @@ namespace App\Controller;
 
 use App\Entity\Message;
 use App\Entity\Result;
+use App\Entity\User;
 use App\Utility\Utils;
 use Doctrine\ORM\EntityManagerInterface;
+use DateTime;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
@@ -213,6 +216,161 @@ class ApiResultsController extends AbstractController
         $this->entityManager->flush();
 
         return Utils::apiResponse(Response::HTTP_NO_CONTENT);
+
+    }
+
+    /**
+     * POST action
+     * Summary: Creates a Result resource.
+     *
+     * @param Request $request request
+     * @return Response
+     * @Route(
+     *     path=".{_format}",
+     *     defaults={ "_format": null },
+     *     requirements={
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_POST },
+     *     name="post"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="`Unauthorized`: Invalid credentials."
+     * )
+     */
+    public function postAction(Request $request):Response{
+
+        if(!$this->isGranted(self::ROLE_ADMIN)){
+            throw new HttpException(
+                Response::HTTP_FORBIDDEN,
+                "`Forbidden`: you don't have permission to access"
+            );
+        }
+        $body = $request->getContent();
+        $postData = json_decode($body, true);
+        $format= Utils::getFormat($request);
+
+        if (!isset($postData[Result::RESULT_ATTR])){
+            $message=new Message(Response::HTTP_UNPROCESSABLE_ENTITY,Response::$statusTexts[422]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                $message,
+                $format
+            );
+        }
+
+        $user_exist = $this->entityManager
+            ->getRepository(User::class)
+            ->find($postData[Result::USER_ATTR]);
+        $result_exist = $this->entityManager
+            ->getRepository(Result::class)
+            ->findOneBy([Result::RESULT_ATTR => $postData[Result::RESULT_ATTR]]);
+
+        //400
+        if ($user_exist!==null||$result_exist!==null){
+            $message=new Message(Response::HTTP_BAD_REQUEST,Response::$statusTexts[400]);
+            return Utils::apiResponse(
+                $message->getCode(),
+                $message,
+                $format
+            );
+        }
+
+        $result =new Result(
+          $postData[Result::RESULT_ATTR],
+          $user_exist,
+          new DateTime('now')
+        );
+
+        $this->entityManager->persist($result);
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            Response::HTTP_CREATED,
+            [Result::RESULT_ATTR=>$result],
+            $format,
+            [
+                'Location' => self::RUTA_API . '/' . $result->getId(),
+            ]
+        );
+    }
+
+
+    /**
+     * PUT action
+     * Summary: Updates the Result resource.
+     * Notes: Updates the result identified by &#x60;resultId&#x60;.
+     *
+     * @param   Request $request request
+     * @param   int $resultId Result id
+     * @return  Response
+     * @Route(
+     *     path="/{resultId}.{_format}",
+     *     defaults={ "_format": null },
+     *     requirements={
+     *          "resultId": "\d+",
+     *         "_format": "json|xml"
+     *     },
+     *     methods={ Request::METHOD_PUT },
+     *     name="put"
+     * )
+     *
+     * @Security(
+     *     expression="is_granted('IS_AUTHENTICATED_FULLY')",
+     *     statusCode=401,
+     *     message="`Unauthorized`: Invalid credentials."
+     * )
+     */
+    public function putAction(Request $request,int $resultId):Response{
+        if($this->isGranted(self::ROLE_ADMIN)){
+            throw new HttpException(
+                Response::HTTP_FORBIDDEN,
+                "`Forbidden`: you don't have permission to access"
+            );
+        }
+        $body =$request->getContent();
+        $postData = json_decode($body, true);
+        $format=Utils::getFormat($request);
+
+        $result = $this->entityManager
+            ->getRepository(Result::class)
+            ->find($resultId);
+
+        //404 not found
+        if($result===null){
+            return $this->error404($format);
+        }
+
+        //result
+        if(isset($postData[Result::RESULT_ATTR])){
+            $result_exist=$this->entityManager
+                ->getRepository(Result::class)
+                ->findOneBy([Result::RESULT_ATTR=>$postData[Result::RESULT_ATTR]]);
+
+            //400 bad request
+            if($result_exist===null){
+                $message=new Message(Response::HTTP_BAD_REQUEST,Response::$statusTexts[400]);
+                return Utils::apiResponse(
+                    $message->getCode(),
+                    $message,
+                    $format
+                );
+            }
+
+            $result->setResult($postData[Result::RESULT_ATTR]);
+
+        }
+
+        $this->entityManager->flush();
+
+        return Utils::apiResponse(
+            209,
+            [Result::RESULT_ATTR=>$result],
+            $format
+        );
 
     }
 
