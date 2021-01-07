@@ -12,9 +12,6 @@ use JsonSerializable;
  * @ORM\Entity
  * @ORM\Table(
  *     name    = "results",
- *     indexes = {
- *          @ORM\Index(name="FK_USER_ID_idx", columns={ "user_id" })
- *     }
  * )
  * @SuppressWarnings(PHPMD.ShortVariable)
  */

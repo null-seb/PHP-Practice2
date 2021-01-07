@@ -118,6 +118,7 @@ class BaseTestCase extends WebTestCase
             );
             $response = self::$client->getResponse();
             $json_resp = json_decode($response->getContent(), true);
+            //print_r($json_resp);die();
             // (HTTP headers are referenced with a HTTP_ prefix as PHP does)
             self::$headers = [
                 'HTTP_ACCEPT'        => 'application/json',

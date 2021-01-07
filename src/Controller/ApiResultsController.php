@@ -241,20 +241,24 @@ class ApiResultsController extends AbstractController
      *     message="`Unauthorized`: Invalid credentials."
      * )
      */
-    public function postAction(Request $request):Response{
 
-        if(!$this->isGranted(self::ROLE_ADMIN)){
+    public function postAction(Request $request): Response
+    {
+        // Puede crear un resultado sólo si tiene ROLE_ADMIN
+        if (!$this->isGranted(self::ROLE_ADMIN)) {
             throw new HttpException(
                 Response::HTTP_FORBIDDEN,
                 "`Forbidden`: you don't have permission to access"
             );
         }
+
         $body = $request->getContent();
         $postData = json_decode($body, true);
-        $format= Utils::getFormat($request);
+        $format = Utils::getFormat($request);
 
-        if (!isset($postData[Result::RESULT_ATTR])){
-            $message=new Message(Response::HTTP_UNPROCESSABLE_ENTITY,Response::$statusTexts[422]);
+        // 422 - Unprocessable Entity -> Faltan datos
+        if (!isset($postData[Result::RESULT_ATTR], $postData[Result::USER_ATTR])) {
+            $message=new Message(Response::HTTP_UNPROCESSABLE_ENTITY, Response::$statusTexts[422]);
             return Utils::apiResponse(
                 $message->getCode(),
                 $message,
@@ -262,15 +266,16 @@ class ApiResultsController extends AbstractController
             );
         }
 
-        $user_exist = $this->entityManager
-            ->getRepository(User::class)
-            ->find($postData[Result::USER_ATTR]);
         $result_exist = $this->entityManager
             ->getRepository(Result::class)
-            ->findOneBy([Result::RESULT_ATTR => $postData[Result::RESULT_ATTR]]);
+            ->findOneBy([ Result::RESULT_ATTR => $postData[Result::RESULT_ATTR] ]);
 
-        //400
-        if ($user_exist!==null||$result_exist!==null){
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->find($postData[Result::USER_ATTR]);
+
+        // 400 - Bad Request
+        if ($user===null||$result_exist!==null ){
             $message=new Message(Response::HTTP_BAD_REQUEST,Response::$statusTexts[400]);
             return Utils::apiResponse(
                 $message->getCode(),
@@ -280,9 +285,9 @@ class ApiResultsController extends AbstractController
         }
 
         $result =new Result(
-          $postData[Result::RESULT_ATTR],
-          $user_exist,
-          new DateTime('now')
+            $postData[Result::RESULT_ATTR],
+            $user,
+            new DateTime('now')
         );
 
         $this->entityManager->persist($result);
@@ -373,6 +378,7 @@ class ApiResultsController extends AbstractController
         );
 
     }
+
 
     /**
      * Response 404 Not Found
