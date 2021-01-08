@@ -420,7 +420,7 @@ class ApiUsersControllerTest extends BaseTestCase
         self::assertStringContainsString(Message::MESSAGE_ATTR, $r_body);
         $r_data = json_decode($r_body, true);
         self::assertSame(Response::HTTP_UNAUTHORIZED, $r_data[Message::CODE_ATTR]);
-        self::assertContains(
+        self::assertStringContainsString(
             Response::$statusTexts[401],
             $r_data[Message::MESSAGE_ATTR]
         );

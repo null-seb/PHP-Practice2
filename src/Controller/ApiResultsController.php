@@ -90,17 +90,15 @@ class ApiResultsController extends AbstractController
 
     /**
      * GET Action
-     * Summary: Retrieves a Result resource based on a single ID.
-     * Notes: Returns the user identified by &#x60;resultId&#x60;.
      *
      * @param Request $request
-     * @param int $resultId Result id
+     * @param  int $resultId Result id
      * @return Response
      * @Route(
-     *     path="/{userId}.{_format}",
+     *     path="/{resultId}.{_format}",
      *     defaults={ "_format": null },
      *     requirements={
-     *          "userId": "\d+",
+     *          "resultId": "\d+",
      *          "_format": "json|xml"
      *     },
      *     methods={ Request::METHOD_GET },
@@ -126,7 +124,7 @@ class ApiResultsController extends AbstractController
 
         return Utils::apiResponse(
           Response::HTTP_OK,
-            [Result::Result_ATTR=>$result],
+            [Result::RESULT_ATTR=>$result],
             $format,
             [
                 self::HEADER_CACHE_CONTROL=>'must-revalidate',
@@ -244,11 +242,11 @@ class ApiResultsController extends AbstractController
 
     public function postAction(Request $request): Response
     {
-        // Puede crear un resultado sólo si tiene ROLE_ADMIN
+        // You can create a result only if you have ROLE_ADMIN
         if (!$this->isGranted(self::ROLE_ADMIN)) {
             throw new HttpException(
                 Response::HTTP_FORBIDDEN,
-                "`Forbidden`: you don't have permission to access"
+                'Forbidden: you don\'t have permission to access'
             );
         }
 
@@ -256,7 +254,7 @@ class ApiResultsController extends AbstractController
         $postData = json_decode($body, true);
         $format = Utils::getFormat($request);
 
-        // 422 - Unprocessable Entity -> Faltan datos
+        // 422 - Unprocessable Entity -> Missing data
         if (!isset($postData[Result::RESULT_ATTR], $postData[Result::USER_ATTR])) {
             $message=new Message(Response::HTTP_UNPROCESSABLE_ENTITY, Response::$statusTexts[422]);
             return Utils::apiResponse(
@@ -309,9 +307,9 @@ class ApiResultsController extends AbstractController
      * Summary: Updates the Result resource.
      * Notes: Updates the result identified by &#x60;resultId&#x60;.
      *
-     * @param   Request $request request
-     * @param   int $resultId Result id
-     * @return  Response
+     * @param Request $request
+     * @param int $resultId
+     * @return Response
      * @Route(
      *     path="/{resultId}.{_format}",
      *     defaults={ "_format": null },
@@ -330,10 +328,12 @@ class ApiResultsController extends AbstractController
      * )
      */
     public function putAction(Request $request,int $resultId):Response{
-        if($this->isGranted(self::ROLE_ADMIN)){
+
+        //403
+        if(!$this->isGranted(self::ROLE_ADMIN)){
             throw new HttpException(
                 Response::HTTP_FORBIDDEN,
-                "`Forbidden`: you don't have permission to access"
+                'Forbidden: you don\'t have permission to access'
             );
         }
         $body =$request->getContent();
@@ -356,7 +356,7 @@ class ApiResultsController extends AbstractController
                 ->findOneBy([Result::RESULT_ATTR=>$postData[Result::RESULT_ATTR]]);
 
             //400 bad request
-            if($result_exist===null){
+            if($result_exist!==null){
                 $message=new Message(Response::HTTP_BAD_REQUEST,Response::$statusTexts[400]);
                 return Utils::apiResponse(
                     $message->getCode(),
